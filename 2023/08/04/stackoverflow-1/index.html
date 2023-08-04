@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/hack-tech/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/hack-tech/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/hack-tech/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/hack-tech/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/hack-tech/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha256-HtsXJanqjKTc8vVQjO4YMhiqFoXkfBsjBWcX91T1jr8=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"ccomoss.github.io","root":"/hack-tech/","images":"/hack-tech/images","scheme":"Gemini","darkmode":true,"version":"8.17.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/hack-tech/js/config.js"></script>
+
+    <meta name="description" content="本文主要总结栈溢出的利用方法，仅做利用原理等方法论总结  在程序至少开启了NX保护之后，就需要利用程序中已有的小片段 (gadgets) 来改变某些寄存器或者变量的值，从而控制程序的执行流程。所谓 gadgets 就是以 ret 结尾的指令序列，通过这些指令序列，我们可以修改某些地址的内容，方便控制程序的执行流程。这就是ROP(Return Oriented Programming)的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Stack | 初级栈溢出方法论">
+<meta property="og:url" content="https://ccomoss.github.io/hack-tech/2023/08/04/stackoverflow-1/index.html">
+<meta property="og:site_name" content="COSMOS">
+<meta property="og:description" content="本文主要总结栈溢出的利用方法，仅做利用原理等方法论总结  在程序至少开启了NX保护之后，就需要利用程序中已有的小片段 (gadgets) 来改变某些寄存器或者变量的值，从而控制程序的执行流程。所谓 gadgets 就是以 ret 结尾的指令序列，通过这些指令序列，我们可以修改某些地址的内容，方便控制程序的执行流程。这就是ROP(Return Oriented Programming)的">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-08-04T08:08:01.000Z">
+<meta property="article:modified_time" content="2023-08-04T08:56:24.110Z">
+<meta property="article:author" content="qinglong-huang">
+<meta property="article:tag" content="二进制">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://ccomoss.github.io/hack-tech/2023/08/04/stackoverflow-1/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://ccomoss.github.io/hack-tech/2023/08/04/stackoverflow-1/","path":"2023/08/04/stackoverflow-1/","title":"Stack | 初级栈溢出方法论"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Stack | 初级栈溢出方法论 | COSMOS</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/hack-tech/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/hack-tech/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">COSMOS</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/hack-tech/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-二进制安全"><a href="/hack-tech/categories/binary" rel="section"><i class="fa fa-th fa-fw"></i>二进制安全</a></li><li class="menu-item menu-item-密码学"><a href="/hack-tech/categories/crypto" rel="section"><i class="fa fa-th fa-fw"></i>密码学</a></li><li class="menu-item menu-item-ctf"><a href="/hack-tech/categories/ctf-wp" rel="section"><i class="fa fa-th fa-fw"></i>CTF</a></li><li class="menu-item menu-item-archives"><a href="/hack-tech/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#ret2shellcode"><span class="nav-number">1.</span> <span class="nav-text">ret2shellcode</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83"><span class="nav-number">2.</span> <span class="nav-text">参考</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">qinglong-huang</p>
+  <div class="site-description" itemprop="description">一个杂记小站，专注网络安全相关的内容</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/hack-tech/archives/">
+          <span class="site-state-item-count">6</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/hack-tech/categories/">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ccomoss.github.io/hack-tech/2023/08/04/stackoverflow-1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/hack-tech/images/avatar.gif">
+      <meta itemprop="name" content="qinglong-huang">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="COSMOS">
+      <meta itemprop="description" content="一个杂记小站，专注网络安全相关的内容">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Stack | 初级栈溢出方法论 | COSMOS">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Stack | 初级栈溢出方法论
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+      
+
+      <time title="创建时间：2023-08-04 16:08:01 / 修改时间：16:56:24" itemprop="dateCreated datePublished" datetime="2023-08-04T16:08:01+08:00">2023-08-04</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/hack-tech/categories/binary/" itemprop="url" rel="index"><span itemprop="name">binary</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要总结栈溢出的利用方法，仅做利用原理等方法论总结</p>
+<hr />
+<p>在程序至少开启了NX保护之后，就需要利用程序中已有的小片段 (gadgets)
+来改变某些寄存器或者变量的值，从而控制程序的执行流程。所谓 gadgets
+就是以 ret
+结尾的指令序列，通过这些指令序列，我们可以修改某些地址的内容，方便控制程序的执行流程。这就是ROP(Return
+Oriented Programming)的主要思想。 <span id="more"></span> ## ret2text
+ret2text就是利用程序本身的已有的代码，即.text段中的指令完成调用。这是在栈溢出利用里面，应该<strong>最先被考虑</strong>的方式，因为这种利用方式最简单、快捷，可以避免很多“底层”技术细节带来的麻烦。</p>
+<p>常用思路：程序本身有system()/execve()的函数调用，并且有"/bin/sh"字符串，甚至于直接有system("/bin/sh")的调用。直接按照x86/x64的函数调用约定构造栈结构就可以了。</p>
+<h2 id="ret2shellcode">ret2shellcode</h2>
+<p>ret2shellcode的基本要求是，<strong>程序有可写且可执行的区域</strong>。我们把shellcode（用于完成某个功能的汇编代码）填充到可写可执行的区域。</p>
+<p><strong>如何找到可写可执行的区域？</strong></p>
+<p>通常来说，.data和.bss两个区域是可以写的；执行权限，可以通过gdb调试，使用vmmap查看对应的段是否具有x权限。</p>
+<p><strong>如何获得shellcode？</strong></p>
+<p>pwntools中其实自带了各种架构的shellcode实现，可以通过下述方式直接使用
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">shellcode = asm(shellcraft.sh())</span><br></pre></td></tr></table></figure></p>
+<h2 id="参考">参考</h2>
+<p>https://ctf-wiki.org/pwn/linux/user-mode/stackoverflow/x86/</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/hack-tech/tags/%E4%BA%8C%E8%BF%9B%E5%88%B6/" rel="tag"># 二进制</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/hack-tech/2023/07/31/pwn-GFSJ0181/" rel="prev" title="攻防世界-Pwn-GFSJ0181-welpwn">
+                  <i class="fa fa-chevron-left"></i> 攻防世界-Pwn-GFSJ0181-welpwn
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/hack-tech/2023/08/04/stackoverflow-0/" rel="next" title="Stack | 栈及栈溢出基本概念">
+                  Stack | 栈及栈溢出基本概念 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2023</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">qinglong-huang</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/hack-tech/js/comments.js"></script><script src="/hack-tech/js/utils.js"></script><script src="/hack-tech/js/motion.js"></script><script src="/hack-tech/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/hack-tech/js/third-party/math/mathjax.js"></script>
+
+
+
+</body>
+</html>
