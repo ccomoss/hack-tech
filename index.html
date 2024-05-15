@@ -161,6 +161,127 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://ccomoss.github.io/hack-tech/2024/05/15/java-deserialize-1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/hack-tech/images/avatar.gif">
+      <meta itemprop="name" content="qinglong-huang">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="COSMOS">
+      <meta itemprop="description" content="一个杂记小站，专注网络安全相关的内容">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="undefined | COSMOS">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/hack-tech/2024/05/15/java-deserialize-1/" class="post-title-link" itemprop="url">Java反序列化系列（一）——入门</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+      
+
+      <time title="创建时间：2024-05-15 09:46:35 / 修改时间：09:58:58" itemprop="dateCreated datePublished" datetime="2024-05-15T09:46:35+08:00">2024-05-15</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/hack-tech/categories/web/" itemprop="url" rel="index"><span itemprop="name">web</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>本文想以一个完全的java安全新人视角，介绍一下java反序列化</p>
+<h2 id="什么是反序列化">什么是反序列化？</h2>
+<p>在各种编程语言中，参数传递一直是一个避免不开的话题，在同一个应用程序内，参数传递很简单，规定好参数的类型和名字，在调用程序接口的时候传入相应的参数就可以了；但如果想在两个应用程序直接传递参数（直接用于程序接口处理）就比较复杂了，如果传递的类型是数字、字符串，那可以通过“文本”的方式直接传递给另一个应用程序，这很简单。可是如果想在两个有你们应用程序之间，像程序接口传参一样去传递某种结构体或者对象就不能直接以“文本”的方式传递了，因为这种传递过程除了要传递数字、字符串等信息外，还需要把相应的“结构”传递过去。</p>
+<p>为了传递这种结构信息，就出现了序列化，序列化就是把一个结构体或者对象“编码”成一个字节流（byte
+string）的形式，这个字节流保存了原有的“结构”信息。相应的，另一个应用程序接收到字节流之后，需要把它复原，这个过程就是<em>反序列化</em>。</p>
+<p>PS.
+这里之所以用字节流来描述序列化后的数据形式，是因为不同的语言，对于序列化的数据使用不同的格式，比如java采用二进制流，PHP采用可见字符串流。</p>
+<p>下面给一个实例，直观感受一下序列化和反序列化的过程。
+在java中，序列化需要实现<code>java.io.Serializable</code>接口，java的Date()类是实现了这个接口的</p>
+<p><img src="1.png" /></p>
+<p>可以简单写一个序列化和反序列化的例子：创建一个Date对象，初始值设置为0，然后将其序列化保存，再反序列化
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> java.io.*;  </span><br><span class="line"><span class="keyword">import</span> java.util.Date;  </span><br><span class="line">  </span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Serializable_test1</span> &#123;  </span><br><span class="line">  </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">serialize</span><span class="params">()</span> <span class="keyword">throws</span> IOException &#123;  </span><br><span class="line">        <span class="type">FileOutputStream</span> <span class="variable">fos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FileOutputStream</span>(<span class="string">&quot;a.txt&quot;</span>);  </span><br><span class="line">        <span class="type">ObjectOutput</span> <span class="variable">oo</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectOutputStream</span>(fos);  </span><br><span class="line">        oo.writeObject(<span class="keyword">new</span> <span class="title class_">Date</span>(<span class="number">0</span>));  </span><br><span class="line">        oo.flush();  </span><br><span class="line">    &#125;  </span><br><span class="line">  </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">deserialize</span><span class="params">()</span> <span class="keyword">throws</span> IOException, ClassNotFoundException &#123;  </span><br><span class="line">        <span class="type">FileInputStream</span> <span class="variable">fis</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FileInputStream</span>(<span class="string">&quot;a.txt&quot;</span>);  </span><br><span class="line">        <span class="type">ObjectInputStream</span> <span class="variable">ois</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectInputStream</span>(fis);  </span><br><span class="line">        <span class="type">Date</span> <span class="variable">d</span> <span class="operator">=</span> (Date) ois.readObject();  </span><br><span class="line">        System.out.println(d.toString());  </span><br><span class="line">    &#125;  </span><br><span class="line">  </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> IOException, ClassNotFoundException &#123;  </span><br><span class="line">        <span class="type">Serializable_test1</span> <span class="variable">st</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Serializable_test1</span>();  </span><br><span class="line">        st.serialize();  </span><br><span class="line">        st.deserialize();  </span><br><span class="line">    &#125;  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>运行之后就生成了一个a.txt的文件，可以通过二进制编辑器打开，前两个字节0xACED就是java序列化的魔术字
+<img src="2.png" /></p>
+<p>并且控制台会打印<code>Date(0)</code>的时间：Thu Jan 01 08:00:00 CST
+1970</p>
+<h2 id="为什么会出现漏洞">为什么会出现漏洞？</h2>
+<p>如上所说，一个类可以序列化和反序列化的前提是实现了<code>java.io.Serializable</code>接口</p>
+<p>比如有一个Dummy类，代码如下： <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> java.io.*;  </span><br><span class="line">  </span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Dummy</span> <span class="keyword">implements</span> <span class="title class_">Serializable</span> &#123;  </span><br><span class="line">    <span class="keyword">private</span> String cmd;  </span><br><span class="line">  </span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">Dummy</span><span class="params">(String cmd)</span> &#123;  </span><br><span class="line">        <span class="built_in">this</span>.cmd = cmd;  </span><br><span class="line">    &#125;  </span><br><span class="line">  </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">readObject</span><span class="params">(ObjectInputStream s)</span> <span class="keyword">throws</span> IOException &#123;  </span><br><span class="line">        System.out.println(<span class="string">&quot;Dummy.readObject is called&quot;</span>);  </span><br><span class="line">        cmd = s.readUTF();  </span><br><span class="line">    &#125;  </span><br><span class="line">  </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">writeObject</span><span class="params">(ObjectOutputStream s)</span> <span class="keyword">throws</span> IOException &#123;  </span><br><span class="line">        System.out.println(<span class="string">&quot;Dummy.writeObject is called&quot;</span>);  </span><br><span class="line">        s.writeUTF(cmd);  </span><br><span class="line">    &#125;  </span><br><span class="line">  </span><br><span class="line">    <span class="meta">@Override</span>  </span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">toString</span><span class="params">()</span> &#123;  </span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;Dummy&#123; &quot;</span> + <span class="string">&quot;cmd=&#x27;&quot;</span> + cmd + <span class="string">&quot;&#x27;&#125;&quot;</span>;  </span><br><span class="line">    &#125;  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>Duumy类实现了<code>readobject</code>和<code>writeobject</code>两个方法，当使用<code>ObjectInputStream</code>和<code>ObjectOutputStream</code>进行反序列化和序列化时，就会分别调用这两个方法。【java原生标准提供的序列化机制】</p>
+<p>如果Dummy类在序列化和反序列化过程中是从用户可控的地方获取数据，比如POST请求，就会导致反序列化漏洞。
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">InputStream</span> <span class="variable">is</span> <span class="operator">=</span> request.getInputStream();  </span><br><span class="line"><span class="type">ObjectInputStream</span> <span class="variable">ois</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectInputStream</span>(is);  </span><br><span class="line"><span class="type">Dummy</span> <span class="variable">dummy</span> <span class="operator">=</span> (Dummy) ois.readObject();</span><br></pre></td></tr></table></figure></p>
+<p>而如果Dummy存在命令执行，那就可以利用这个反序列化漏洞达成命令执行，实现exp的代码如下：
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Dummy</span> <span class="variable">dummy</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Dummy</span>(<span class="string">&quot;calc&quot;</span>);</span><br><span class="line"><span class="type">ByteArrayOutputStream</span> <span class="variable">baos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ByteArrayOutputStream</span>();</span><br><span class="line"><span class="type">ObjectOutputStream</span> <span class="variable">oos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectOutputStream</span>(baos);</span><br><span class="line">oos.writeObejct(dummy);</span><br><span class="line"><span class="type">byte</span>[] exp = baos.toByteArray();</span><br></pre></td></tr></table></figure></p>
+<h2 id="识别检测">识别&amp;检测</h2>
+<p>由于java反序列化的结果主要是二进制形式的，黑盒测试时，需要在流量中寻找序列化特征字节或字符串
++ 特征字节<code>ac ed 00 05</code> ，其中0xaced是magic
+bytes，0x0005是序列化版本号 + base64字符串 <code>rO0AB</code> +
+使用BurpSuite插件，Java Deserialization Scanner</p>
+<p>白盒测试时，注意搜索<code>readObject</code>相关方法</p>
+<h2 id="找到了漏洞怎么利用">找到了漏洞，怎么利用？</h2>
+<p>在实际的应用程序中，可序列化的接口存在命令执行的可能性很小。现实世界，为了完成反序列化漏洞的利用，通常需要结合多个不同的可序列化类的方法调用，形成复杂调用链。在Java安全领域，习惯称之为<em>反序列化调用链</em>，也叫<em>Gadget
+Chain</em>。</p>
+<p>但是寻找Gadget
+Chain是一件很好时间和精力是事情，好在已经有很多大牛通过研究Java标准库和常见的三方库，找到了一些可以实现RCE的调用链，并集成在ysoserial工具中。通过运行下面的命令，可以查看该工具支持的所有调用链。
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -jar ysoserial.jar</span><br></pre></td></tr></table></figure></p>
+<p>通过执行如下命令就可以生成一个Commons-Collections1的序列化payload
+<figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">java </span>-<span class="keyword">jar </span>ysoserial.<span class="keyword">jar </span>CommonsCollections1 calc.exe</span><br></pre></td></tr></table></figure></p>
+<p><img src="3.png" /></p>
+<h2 id="工具">工具</h2>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/frohoff/ysoserial">ysoserial</a></li>
+</ul>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
     <link itemprop="mainEntityOfPage" href="https://ccomoss.github.io/hack-tech/2023/08/17/pwn-GFSJ1016/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -483,133 +604,6 @@ Oriented Programming)的主要思想。
             </div>
           <!--/noindex-->
         
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://ccomoss.github.io/hack-tech/2023/08/04/java-deserialize-1/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/hack-tech/images/avatar.gif">
-      <meta itemprop="name" content="qinglong-huang">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="COSMOS">
-      <meta itemprop="description" content="一个杂记小站，专注网络安全相关的内容">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="undefined | COSMOS">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/hack-tech/2023/08/04/java-deserialize-1/" class="post-title-link" itemprop="url">Stack | 初级栈溢出</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2023-08-04 16:08:01" itemprop="dateCreated datePublished" datetime="2023-08-04T16:08:01+08:00">2023-08-04</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">更新于</span>
-      <time title="修改时间：2024-05-15 09:53:53" itemprop="dateModified" datetime="2024-05-15T09:53:53+08:00">2024-05-15</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/hack-tech/categories/web/" itemprop="url" rel="index"><span itemprop="name">web</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>本文想以一个完全的java安全新人视角，介绍一下java反序列化</p>
-<h2 id="什么是反序列化">什么是反序列化？</h2>
-<p>在各种编程语言中，参数传递一直是一个避免不开的话题，在同一个应用程序内，参数传递很简单，规定好参数的类型和名字，在调用程序接口的时候传入相应的参数就可以了；但如果想在两个应用程序直接传递参数（直接用于程序接口处理）就比较复杂了，如果传递的类型是数字、字符串，那可以通过“文本”的方式直接传递给另一个应用程序，这很简单。可是如果想在两个有你们应用程序之间，像程序接口传参一样去传递某种结构体或者对象就不能直接以“文本”的方式传递了，因为这种传递过程除了要传递数字、字符串等信息外，还需要把相应的“结构”传递过去。</p>
-<p>为了传递这种结构信息，就出现了序列化，序列化就是把一个结构体或者对象“编码”成一个字节流（byte
-string）的形式，这个字节流保存了原有的“结构”信息。相应的，另一个应用程序接收到字节流之后，需要把它复原，这个过程就是<em>反序列化</em>。</p>
-<p>PS.
-这里之所以用字节流来描述序列化后的数据形式，是因为不同的语言，对于序列化的数据使用不同的格式，比如java采用二进制流，PHP采用可见字符串流。</p>
-<p>下面给一个实例，直观感受一下序列化和反序列化的过程。
-在java中，序列化需要实现<code>java.io.Serializable</code>接口，java的Date()类是实现了这个接口的</p>
-<p><img src="1.png" /></p>
-<p>可以简单写一个序列化和反序列化的例子：创建一个Date对象，初始值设置为0，然后将其序列化保存，再反序列化
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> java.io.*;  </span><br><span class="line"><span class="keyword">import</span> java.util.Date;  </span><br><span class="line">  </span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Serializable_test1</span> &#123;  </span><br><span class="line">  </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">serialize</span><span class="params">()</span> <span class="keyword">throws</span> IOException &#123;  </span><br><span class="line">        <span class="type">FileOutputStream</span> <span class="variable">fos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FileOutputStream</span>(<span class="string">&quot;a.txt&quot;</span>);  </span><br><span class="line">        <span class="type">ObjectOutput</span> <span class="variable">oo</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectOutputStream</span>(fos);  </span><br><span class="line">        oo.writeObject(<span class="keyword">new</span> <span class="title class_">Date</span>(<span class="number">0</span>));  </span><br><span class="line">        oo.flush();  </span><br><span class="line">    &#125;  </span><br><span class="line">  </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">deserialize</span><span class="params">()</span> <span class="keyword">throws</span> IOException, ClassNotFoundException &#123;  </span><br><span class="line">        <span class="type">FileInputStream</span> <span class="variable">fis</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FileInputStream</span>(<span class="string">&quot;a.txt&quot;</span>);  </span><br><span class="line">        <span class="type">ObjectInputStream</span> <span class="variable">ois</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectInputStream</span>(fis);  </span><br><span class="line">        <span class="type">Date</span> <span class="variable">d</span> <span class="operator">=</span> (Date) ois.readObject();  </span><br><span class="line">        System.out.println(d.toString());  </span><br><span class="line">    &#125;  </span><br><span class="line">  </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> IOException, ClassNotFoundException &#123;  </span><br><span class="line">        <span class="type">Serializable_test1</span> <span class="variable">st</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Serializable_test1</span>();  </span><br><span class="line">        st.serialize();  </span><br><span class="line">        st.deserialize();  </span><br><span class="line">    &#125;  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>运行之后就生成了一个a.txt的文件，可以通过二进制编辑器打开，前两个字节0xACED就是java序列化的魔术字
-<img src="2.png" /></p>
-<p>并且控制台会打印<code>Date(0)</code>的时间：Thu Jan 01 08:00:00 CST
-1970</p>
-<h2 id="为什么会出现漏洞">为什么会出现漏洞？</h2>
-<p>如上所说，一个类可以序列化和反序列化的前提是实现了<code>java.io.Serializable</code>接口</p>
-<p>比如有一个Dummy类，代码如下： <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> java.io.*;  </span><br><span class="line">  </span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Dummy</span> <span class="keyword">implements</span> <span class="title class_">Serializable</span> &#123;  </span><br><span class="line">    <span class="keyword">private</span> String cmd;  </span><br><span class="line">  </span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">Dummy</span><span class="params">(String cmd)</span> &#123;  </span><br><span class="line">        <span class="built_in">this</span>.cmd = cmd;  </span><br><span class="line">    &#125;  </span><br><span class="line">  </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">readObject</span><span class="params">(ObjectInputStream s)</span> <span class="keyword">throws</span> IOException &#123;  </span><br><span class="line">        System.out.println(<span class="string">&quot;Dummy.readObject is called&quot;</span>);  </span><br><span class="line">        cmd = s.readUTF();  </span><br><span class="line">    &#125;  </span><br><span class="line">  </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">writeObject</span><span class="params">(ObjectOutputStream s)</span> <span class="keyword">throws</span> IOException &#123;  </span><br><span class="line">        System.out.println(<span class="string">&quot;Dummy.writeObject is called&quot;</span>);  </span><br><span class="line">        s.writeUTF(cmd);  </span><br><span class="line">    &#125;  </span><br><span class="line">  </span><br><span class="line">    <span class="meta">@Override</span>  </span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">toString</span><span class="params">()</span> &#123;  </span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;Dummy&#123; &quot;</span> + <span class="string">&quot;cmd=&#x27;&quot;</span> + cmd + <span class="string">&quot;&#x27;&#125;&quot;</span>;  </span><br><span class="line">    &#125;  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>Duumy类实现了<code>readobject</code>和<code>writeobject</code>两个方法，当使用<code>ObjectInputStream</code>和<code>ObjectOutputStream</code>进行反序列化和序列化时，就会分别调用这两个方法。【java原生标准提供的序列化机制】</p>
-<p>如果Dummy类在序列化和反序列化过程中是从用户可控的地方获取数据，比如POST请求，就会导致反序列化漏洞。
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">InputStream</span> <span class="variable">is</span> <span class="operator">=</span> request.getInputStream();  </span><br><span class="line"><span class="type">ObjectInputStream</span> <span class="variable">ois</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectInputStream</span>(is);  </span><br><span class="line"><span class="type">Dummy</span> <span class="variable">dummy</span> <span class="operator">=</span> (Dummy) ois.readObject();</span><br></pre></td></tr></table></figure></p>
-<p>而如果Dummy存在命令执行，那就可以利用这个反序列化漏洞达成命令执行，实现exp的代码如下：
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Dummy</span> <span class="variable">dummy</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Dummy</span>(<span class="string">&quot;calc&quot;</span>);</span><br><span class="line"><span class="type">ByteArrayOutputStream</span> <span class="variable">baos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ByteArrayOutputStream</span>();</span><br><span class="line"><span class="type">ObjectOutputStream</span> <span class="variable">oos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectOutputStream</span>(baos);</span><br><span class="line">oos.writeObejct(dummy);</span><br><span class="line"><span class="type">byte</span>[] exp = baos.toByteArray();</span><br></pre></td></tr></table></figure></p>
-<h2 id="识别检测">识别&amp;检测</h2>
-<p>由于java反序列化的结果主要是二进制形式的，黑盒测试时，需要在流量中寻找序列化特征字节或字符串
-+ 特征字节<code>ac ed 00 05</code> ，其中0xaced是magic
-bytes，0x0005是序列化版本号 + base64字符串 <code>rO0AB</code> +
-使用BurpSuite插件，Java Deserialization Scanner</p>
-<p>白盒测试时，注意搜索<code>readObject</code>相关方法</p>
-<h2 id="找到了漏洞怎么利用">找到了漏洞，怎么利用？</h2>
-<p>在实际的应用程序中，可序列化的接口存在命令执行的可能性很小。现实世界，为了完成反序列化漏洞的利用，通常需要结合多个不同的可序列化类的方法调用，形成复杂调用链。在Java安全领域，习惯称之为<em>反序列化调用链</em>，也叫<em>Gadget
-Chain</em>。</p>
-<p>但是寻找Gadget
-Chain是一件很好时间和精力是事情，好在已经有很多大牛通过研究Java标准库和常见的三方库，找到了一些可以实现RCE的调用链，并集成在ysoserial工具中。通过运行下面的命令，可以查看该工具支持的所有调用链。
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -jar ysoserial.jar</span><br></pre></td></tr></table></figure></p>
-<p>通过执行如下命令就可以生成一个Commons-Collections1的序列化payload
-<figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">java </span>-<span class="keyword">jar </span>ysoserial.<span class="keyword">jar </span>CommonsCollections1 calc.exe</span><br></pre></td></tr></table></figure></p>
-<p><img src="3.png" /></p>
-<h2 id="工具">工具</h2>
-<ul>
-<li><a target="_blank" rel="noopener" href="https://github.com/frohoff/ysoserial">ysoserial</a></li>
-</ul>
-
       
     </div>
 
