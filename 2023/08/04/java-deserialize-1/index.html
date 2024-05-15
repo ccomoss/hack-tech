@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/hack-tech/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/hack-tech/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/hack-tech/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/hack-tech/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/hack-tech/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha256-HtsXJanqjKTc8vVQjO4YMhiqFoXkfBsjBWcX91T1jr8=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"ccomoss.github.io","root":"/hack-tech/","images":"/hack-tech/images","scheme":"Gemini","darkmode":true,"version":"8.17.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/hack-tech/js/config.js"></script>
+
+    <meta name="description" content="本文想以一个完全的java安全新人视角，介绍一下java反序列化 什么是反序列化？ 在各种编程语言中，参数传递一直是一个避免不开的话题，在同一个应用程序内，参数传递很简单，规定好参数的类型和名字，在调用程序接口的时候传入相应的参数就可以了；但如果想在两个应用程序直接传递参数（直接用于程序接口处理）就比较复杂了，如果传递的类型是数字、字符串，那可以通过“文本”的方式直接传递给另一个应用程序，这很">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Stack | 初级栈溢出">
+<meta property="og:url" content="https://ccomoss.github.io/hack-tech/2023/08/04/java-deserialize-1/index.html">
+<meta property="og:site_name" content="COSMOS">
+<meta property="og:description" content="本文想以一个完全的java安全新人视角，介绍一下java反序列化 什么是反序列化？ 在各种编程语言中，参数传递一直是一个避免不开的话题，在同一个应用程序内，参数传递很简单，规定好参数的类型和名字，在调用程序接口的时候传入相应的参数就可以了；但如果想在两个应用程序直接传递参数（直接用于程序接口处理）就比较复杂了，如果传递的类型是数字、字符串，那可以通过“文本”的方式直接传递给另一个应用程序，这很">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://ccomoss.github.io/hack-tech/2023/08/04/java-deserialize-1/1.png">
+<meta property="og:image" content="https://ccomoss.github.io/hack-tech/2023/08/04/java-deserialize-1/2.png">
+<meta property="og:image" content="https://ccomoss.github.io/hack-tech/2023/08/04/java-deserialize-1/3.png">
+<meta property="article:published_time" content="2023-08-04T08:08:01.000Z">
+<meta property="article:modified_time" content="2024-05-15T01:53:53.541Z">
+<meta property="article:author" content="qinglong-huang">
+<meta property="article:tag" content="java">
+<meta property="article:tag" content="web安全">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://ccomoss.github.io/hack-tech/2023/08/04/java-deserialize-1/1.png">
+
+
+<link rel="canonical" href="https://ccomoss.github.io/hack-tech/2023/08/04/java-deserialize-1/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://ccomoss.github.io/hack-tech/2023/08/04/java-deserialize-1/","path":"2023/08/04/java-deserialize-1/","title":"Stack | 初级栈溢出"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Stack | 初级栈溢出 | COSMOS</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/hack-tech/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/hack-tech/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">COSMOS</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/hack-tech/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-二进制安全"><a href="/hack-tech/categories/binary" rel="section"><i class="fa fa-th fa-fw"></i>二进制安全</a></li><li class="menu-item menu-item-web安全"><a href="/hack-tech/categories/web" rel="section"><i class="fa fa-th fa-fw"></i>web安全</a></li><li class="menu-item menu-item-密码学"><a href="/hack-tech/categories/crypto" rel="section"><i class="fa fa-th fa-fw"></i>密码学</a></li><li class="menu-item menu-item-ctf"><a href="/hack-tech/categories/ctf-wp" rel="section"><i class="fa fa-th fa-fw"></i>CTF</a></li><li class="menu-item menu-item-archives"><a href="/hack-tech/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96"><span class="nav-number">1.</span> <span class="nav-text">什么是反序列化？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BC%9A%E5%87%BA%E7%8E%B0%E6%BC%8F%E6%B4%9E"><span class="nav-number">2.</span> <span class="nav-text">为什么会出现漏洞？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AF%86%E5%88%AB%E6%A3%80%E6%B5%8B"><span class="nav-number">3.</span> <span class="nav-text">识别&amp;检测</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%89%BE%E5%88%B0%E4%BA%86%E6%BC%8F%E6%B4%9E%E6%80%8E%E4%B9%88%E5%88%A9%E7%94%A8"><span class="nav-number">4.</span> <span class="nav-text">找到了漏洞，怎么利用？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B7%A5%E5%85%B7"><span class="nav-number">5.</span> <span class="nav-text">工具</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">qinglong-huang</p>
+  <div class="site-description" itemprop="description">一个杂记小站，专注网络安全相关的内容</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/hack-tech/archives/">
+          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/hack-tech/categories/">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ccomoss.github.io/hack-tech/2023/08/04/java-deserialize-1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/hack-tech/images/avatar.gif">
+      <meta itemprop="name" content="qinglong-huang">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="COSMOS">
+      <meta itemprop="description" content="一个杂记小站，专注网络安全相关的内容">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Stack | 初级栈溢出 | COSMOS">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Stack | 初级栈溢出
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-08-04 16:08:01" itemprop="dateCreated datePublished" datetime="2023-08-04T16:08:01+08:00">2023-08-04</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2024-05-15 09:53:53" itemprop="dateModified" datetime="2024-05-15T09:53:53+08:00">2024-05-15</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/hack-tech/categories/web/" itemprop="url" rel="index"><span itemprop="name">web</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文想以一个完全的java安全新人视角，介绍一下java反序列化</p>
+<h2 id="什么是反序列化">什么是反序列化？</h2>
+<p>在各种编程语言中，参数传递一直是一个避免不开的话题，在同一个应用程序内，参数传递很简单，规定好参数的类型和名字，在调用程序接口的时候传入相应的参数就可以了；但如果想在两个应用程序直接传递参数（直接用于程序接口处理）就比较复杂了，如果传递的类型是数字、字符串，那可以通过“文本”的方式直接传递给另一个应用程序，这很简单。可是如果想在两个有你们应用程序之间，像程序接口传参一样去传递某种结构体或者对象就不能直接以“文本”的方式传递了，因为这种传递过程除了要传递数字、字符串等信息外，还需要把相应的“结构”传递过去。</p>
+<p>为了传递这种结构信息，就出现了序列化，序列化就是把一个结构体或者对象“编码”成一个字节流（byte
+string）的形式，这个字节流保存了原有的“结构”信息。相应的，另一个应用程序接收到字节流之后，需要把它复原，这个过程就是<em>反序列化</em>。</p>
+<p>PS.
+这里之所以用字节流来描述序列化后的数据形式，是因为不同的语言，对于序列化的数据使用不同的格式，比如java采用二进制流，PHP采用可见字符串流。</p>
+<p>下面给一个实例，直观感受一下序列化和反序列化的过程。
+在java中，序列化需要实现<code>java.io.Serializable</code>接口，java的Date()类是实现了这个接口的</p>
+<p><img src="1.png" /></p>
+<p>可以简单写一个序列化和反序列化的例子：创建一个Date对象，初始值设置为0，然后将其序列化保存，再反序列化
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> java.io.*;  </span><br><span class="line"><span class="keyword">import</span> java.util.Date;  </span><br><span class="line">  </span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Serializable_test1</span> &#123;  </span><br><span class="line">  </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">serialize</span><span class="params">()</span> <span class="keyword">throws</span> IOException &#123;  </span><br><span class="line">        <span class="type">FileOutputStream</span> <span class="variable">fos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FileOutputStream</span>(<span class="string">&quot;a.txt&quot;</span>);  </span><br><span class="line">        <span class="type">ObjectOutput</span> <span class="variable">oo</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectOutputStream</span>(fos);  </span><br><span class="line">        oo.writeObject(<span class="keyword">new</span> <span class="title class_">Date</span>(<span class="number">0</span>));  </span><br><span class="line">        oo.flush();  </span><br><span class="line">    &#125;  </span><br><span class="line">  </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">deserialize</span><span class="params">()</span> <span class="keyword">throws</span> IOException, ClassNotFoundException &#123;  </span><br><span class="line">        <span class="type">FileInputStream</span> <span class="variable">fis</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FileInputStream</span>(<span class="string">&quot;a.txt&quot;</span>);  </span><br><span class="line">        <span class="type">ObjectInputStream</span> <span class="variable">ois</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectInputStream</span>(fis);  </span><br><span class="line">        <span class="type">Date</span> <span class="variable">d</span> <span class="operator">=</span> (Date) ois.readObject();  </span><br><span class="line">        System.out.println(d.toString());  </span><br><span class="line">    &#125;  </span><br><span class="line">  </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> IOException, ClassNotFoundException &#123;  </span><br><span class="line">        <span class="type">Serializable_test1</span> <span class="variable">st</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Serializable_test1</span>();  </span><br><span class="line">        st.serialize();  </span><br><span class="line">        st.deserialize();  </span><br><span class="line">    &#125;  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>运行之后就生成了一个a.txt的文件，可以通过二进制编辑器打开，前两个字节0xACED就是java序列化的魔术字
+<img src="2.png" /></p>
+<p>并且控制台会打印<code>Date(0)</code>的时间：Thu Jan 01 08:00:00 CST
+1970</p>
+<h2 id="为什么会出现漏洞">为什么会出现漏洞？</h2>
+<p>如上所说，一个类可以序列化和反序列化的前提是实现了<code>java.io.Serializable</code>接口</p>
+<p>比如有一个Dummy类，代码如下： <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> java.io.*;  </span><br><span class="line">  </span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Dummy</span> <span class="keyword">implements</span> <span class="title class_">Serializable</span> &#123;  </span><br><span class="line">    <span class="keyword">private</span> String cmd;  </span><br><span class="line">  </span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">Dummy</span><span class="params">(String cmd)</span> &#123;  </span><br><span class="line">        <span class="built_in">this</span>.cmd = cmd;  </span><br><span class="line">    &#125;  </span><br><span class="line">  </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">readObject</span><span class="params">(ObjectInputStream s)</span> <span class="keyword">throws</span> IOException &#123;  </span><br><span class="line">        System.out.println(<span class="string">&quot;Dummy.readObject is called&quot;</span>);  </span><br><span class="line">        cmd = s.readUTF();  </span><br><span class="line">    &#125;  </span><br><span class="line">  </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">writeObject</span><span class="params">(ObjectOutputStream s)</span> <span class="keyword">throws</span> IOException &#123;  </span><br><span class="line">        System.out.println(<span class="string">&quot;Dummy.writeObject is called&quot;</span>);  </span><br><span class="line">        s.writeUTF(cmd);  </span><br><span class="line">    &#125;  </span><br><span class="line">  </span><br><span class="line">    <span class="meta">@Override</span>  </span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">toString</span><span class="params">()</span> &#123;  </span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;Dummy&#123; &quot;</span> + <span class="string">&quot;cmd=&#x27;&quot;</span> + cmd + <span class="string">&quot;&#x27;&#125;&quot;</span>;  </span><br><span class="line">    &#125;  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>Duumy类实现了<code>readobject</code>和<code>writeobject</code>两个方法，当使用<code>ObjectInputStream</code>和<code>ObjectOutputStream</code>进行反序列化和序列化时，就会分别调用这两个方法。【java原生标准提供的序列化机制】</p>
+<p>如果Dummy类在序列化和反序列化过程中是从用户可控的地方获取数据，比如POST请求，就会导致反序列化漏洞。
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">InputStream</span> <span class="variable">is</span> <span class="operator">=</span> request.getInputStream();  </span><br><span class="line"><span class="type">ObjectInputStream</span> <span class="variable">ois</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectInputStream</span>(is);  </span><br><span class="line"><span class="type">Dummy</span> <span class="variable">dummy</span> <span class="operator">=</span> (Dummy) ois.readObject();</span><br></pre></td></tr></table></figure></p>
+<p>而如果Dummy存在命令执行，那就可以利用这个反序列化漏洞达成命令执行，实现exp的代码如下：
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Dummy</span> <span class="variable">dummy</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Dummy</span>(<span class="string">&quot;calc&quot;</span>);</span><br><span class="line"><span class="type">ByteArrayOutputStream</span> <span class="variable">baos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ByteArrayOutputStream</span>();</span><br><span class="line"><span class="type">ObjectOutputStream</span> <span class="variable">oos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectOutputStream</span>(baos);</span><br><span class="line">oos.writeObejct(dummy);</span><br><span class="line"><span class="type">byte</span>[] exp = baos.toByteArray();</span><br></pre></td></tr></table></figure></p>
+<h2 id="识别检测">识别&amp;检测</h2>
+<p>由于java反序列化的结果主要是二进制形式的，黑盒测试时，需要在流量中寻找序列化特征字节或字符串
++ 特征字节<code>ac ed 00 05</code> ，其中0xaced是magic
+bytes，0x0005是序列化版本号 + base64字符串 <code>rO0AB</code> +
+使用BurpSuite插件，Java Deserialization Scanner</p>
+<p>白盒测试时，注意搜索<code>readObject</code>相关方法</p>
+<h2 id="找到了漏洞怎么利用">找到了漏洞，怎么利用？</h2>
+<p>在实际的应用程序中，可序列化的接口存在命令执行的可能性很小。现实世界，为了完成反序列化漏洞的利用，通常需要结合多个不同的可序列化类的方法调用，形成复杂调用链。在Java安全领域，习惯称之为<em>反序列化调用链</em>，也叫<em>Gadget
+Chain</em>。</p>
+<p>但是寻找Gadget
+Chain是一件很好时间和精力是事情，好在已经有很多大牛通过研究Java标准库和常见的三方库，找到了一些可以实现RCE的调用链，并集成在ysoserial工具中。通过运行下面的命令，可以查看该工具支持的所有调用链。
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -jar ysoserial.jar</span><br></pre></td></tr></table></figure></p>
+<p>通过执行如下命令就可以生成一个Commons-Collections1的序列化payload
+<figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">java </span>-<span class="keyword">jar </span>ysoserial.<span class="keyword">jar </span>CommonsCollections1 calc.exe</span><br></pre></td></tr></table></figure></p>
+<p><img src="3.png" /></p>
+<h2 id="工具">工具</h2>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/frohoff/ysoserial">ysoserial</a></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/hack-tech/tags/java/" rel="tag"># java</a>
+              <a href="/hack-tech/tags/web%E5%AE%89%E5%85%A8/" rel="tag"># web安全</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/hack-tech/2023/07/31/pwn-GFSJ0181/" rel="prev" title="攻防世界-Pwn-GFSJ0181-welpwn">
+                  <i class="fa fa-chevron-left"></i> 攻防世界-Pwn-GFSJ0181-welpwn
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/hack-tech/2023/08/04/stackoverflow-1/" rel="next" title="Stack | 初级栈溢出">
+                  Stack | 初级栈溢出 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2023 – 
+    <span itemprop="copyrightYear">2024</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">qinglong-huang</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/hack-tech/js/comments.js"></script><script src="/hack-tech/js/utils.js"></script><script src="/hack-tech/js/motion.js"></script><script src="/hack-tech/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/hack-tech/js/third-party/math/mathjax.js"></script>
+
+
+
+</body>
+</html>
